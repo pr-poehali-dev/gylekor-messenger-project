@@ -7,12 +7,19 @@ import ContactsTab from "./ContactsTab";
 import StatusesTab from "./StatusesTab";
 import ProfileTab from "./ProfileTab";
 import SettingsTab from "./SettingsTab";
-import { type Chat } from "./data";
 
 type Tab = "chats" | "contacts" | "statuses" | "profile" | "settings";
 
+interface OpenChatInfo {
+  chatId?: string;
+  partnerId: string;
+  partnerName: string;
+  partnerAvatar: string;
+  partnerOnline: boolean;
+}
+
 interface MainAppProps {
-  user: { phone: string; username: string; name: string };
+  user: { id: string; phone: string; username: string; name: string };
   onLogout: () => void;
 }
 
@@ -26,7 +33,7 @@ const TABS: { id: Tab; icon: string; label: string }[] = [
 
 export default function MainApp({ user, onLogout }: MainAppProps) {
   const [activeTab, setActiveTab] = useState<Tab>("chats");
-  const [openChat, setOpenChat] = useState<Chat | null>(null);
+  const [openChat, setOpenChat] = useState<OpenChatInfo | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -41,7 +48,15 @@ export default function MainApp({ user, onLogout }: MainAppProps) {
   if (openChat) {
     return (
       <div className="h-screen flex flex-col" style={{ background: 'hsl(240, 15%, 6%)' }}>
-        <ChatWindow chat={openChat} onBack={() => setOpenChat(null)} currentUser={user} />
+        <ChatWindow
+          chatId={openChat.chatId}
+          partnerId={openChat.partnerId}
+          partnerName={openChat.partnerName}
+          partnerAvatar={openChat.partnerAvatar}
+          partnerOnline={openChat.partnerOnline}
+          currentUser={user}
+          onBack={() => setOpenChat(null)}
+        />
       </div>
     );
   }
@@ -83,7 +98,9 @@ export default function MainApp({ user, onLogout }: MainAppProps) {
 
       {/* Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {activeTab === "chats" && <ChatList onOpenChat={setOpenChat} searchQuery={searchQuery} />}
+        {activeTab === "chats" && (
+          <ChatList userId={user.id} onOpenChat={setOpenChat} searchQuery={searchQuery} />
+        )}
         {activeTab === "contacts" && <ContactsTab searchQuery={searchQuery} />}
         {activeTab === "statuses" && <StatusesTab />}
         {activeTab === "profile" && <ProfileTab user={user} onLogout={onLogout} />}
@@ -91,7 +108,7 @@ export default function MainApp({ user, onLogout }: MainAppProps) {
       </div>
 
       {/* Bottom Nav */}
-      <div className="glass nav-glow border-t border-white/8 flex-shrink-0 safe-area-pb">
+      <div className="glass nav-glow border-t border-white/8 flex-shrink-0">
         <div className="flex items-center px-2 py-2">
           {TABS.map(tab => {
             const isActive = activeTab === tab.id;
@@ -100,14 +117,10 @@ export default function MainApp({ user, onLogout }: MainAppProps) {
                 key={tab.id}
                 onClick={() => { setActiveTab(tab.id); setSearchQuery(""); setSearchOpen(false); }}
                 className="flex-1 flex flex-col items-center gap-1 py-1 rounded-2xl transition-all duration-200">
-
                 <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-200 ${isActive ? "scale-105" : "scale-100"}`}
                   style={isActive ? { background: 'linear-gradient(135deg, #7c3aed, #ec4899)' } : {}}>
-                  <Icon
-                    name={tab.icon}
-                    size={isActive ? 22 : 20}
-                    style={{ color: isActive ? 'white' : 'rgba(255,255,255,0.4)' }}
-                  />
+                  <Icon name={tab.icon} size={isActive ? 22 : 20}
+                    style={{ color: isActive ? 'white' : 'rgba(255,255,255,0.4)' }} />
                 </div>
                 <span className="text-[10px] font-medium transition-colors duration-200"
                   style={{ color: isActive ? '#a855f7' : 'rgba(255,255,255,0.35)' }}>
