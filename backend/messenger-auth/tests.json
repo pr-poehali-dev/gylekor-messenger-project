@@ -1,12 +1,12 @@
 {
   "tests": [
     {
-      "name": "Register new user",
+      "name": "Send OTP code",
       "method": "POST",
-      "path": "/",
-      "body": {"phone": "+79001234567", "username": "testuser_gylekor", "name": "Тест Юзер"},
+      "path": "/send-code",
+      "body": {"phone": "+79001234599"},
       "expectedStatus": 200,
-      "expectedBody": {"user": {"username": "testuser_gylekor"}},
+      "expectedBody": {"success": true},
       "bodyMatcher": "partial"
     }
   ]

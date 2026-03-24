@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { getChats, type ApiChat } from "./api";
-import { CHATS } from "./data";
 import Icon from "@/components/ui/icon";
 
 interface OpenChatInfo {
@@ -18,23 +17,16 @@ interface ChatListProps {
 }
 
 export default function ChatList({ userId, onOpenChat, searchQuery }: ChatListProps) {
-  const [apiChats, setApiChats] = useState<ApiChat[]>([]);
+  const [chats, setChats] = useState<ApiChat[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     getChats(userId)
-      .then(setApiChats)
+      .then(setChats)
       .finally(() => setLoading(false));
   }, [userId]);
 
-  const hasRealChats = apiChats.length > 0;
-
-  const demoFiltered = CHATS.filter(c =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const realFiltered = apiChats.filter(c =>
+  const filtered = chats.filter(c =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.last_message.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -47,20 +39,40 @@ export default function ChatList({ userId, onOpenChat, searchQuery }: ChatListPr
     );
   }
 
+  if (chats.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center flex-1 px-8 text-center">
+        <div className="text-5xl mb-4">💬</div>
+        <h3 className="text-white font-semibold text-lg mb-2">Пока нет чатов</h3>
+        <p className="text-muted-foreground text-sm leading-relaxed">
+          Найдите людей через раздел <span className="text-purple-400">Контакты</span> и начните переписку
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 overflow-y-auto px-2 py-2">
-      {hasRealChats && realFiltered.map((chat, i) => (
+      {filtered.length === 0 && searchQuery && (
+        <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
+          <Icon name="Search" size={36} className="mb-2 opacity-30" />
+          <p className="text-sm">Ничего не найдено</p>
+        </div>
+      )}
+
+      {filtered.map((chat, i) => (
         <button
           key={chat.id}
           onClick={() => onOpenChat({
             chatId: chat.id,
             partnerId: chat.partner_id,
             partnerName: chat.name,
-            partnerAvatar: chat.name[0],
+            partnerAvatar: chat.name[0].toUpperCase(),
             partnerOnline: false,
           })}
           className="w-full flex items-center gap-3 px-3 py-3 rounded-2xl mb-1 hover:bg-white/5 transition-all duration-200 animate-fade-in text-left"
           style={{ animationDelay: `${i * 0.05}s` }}>
+
           <div className="relative flex-shrink-0">
             <div className="avatar-ring">
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center text-xl font-bold text-white">
@@ -68,15 +80,18 @@ export default function ChatList({ userId, onOpenChat, searchQuery }: ChatListPr
               </div>
             </div>
           </div>
+
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-0.5">
               <span className="font-semibold text-white text-sm truncate">{chat.name}</span>
               <span className="text-muted-foreground text-xs flex-shrink-0 ml-2">{chat.last_time}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground text-xs truncate">{chat.last_message || "Нет сообщений"}</span>
+              <span className="text-muted-foreground text-xs truncate">
+                {chat.last_message || "Нет сообщений"}
+              </span>
               {chat.unread > 0 && (
-                <span className="ml-2 flex-shrink-0 w-5 h-5 rounded-full text-white text-xs flex items-center justify-center font-bold"
+                <span className="ml-2 flex-shrink-0 min-w-5 h-5 px-1 rounded-full text-white text-xs flex items-center justify-center font-bold"
                   style={{ background: 'linear-gradient(135deg, #7c3aed, #ec4899)' }}>
                   {chat.unread > 9 ? "9+" : chat.unread}
                 </span>
@@ -85,63 +100,6 @@ export default function ChatList({ userId, onOpenChat, searchQuery }: ChatListPr
           </div>
         </button>
       ))}
-
-      {!hasRealChats && (
-        <>
-          <div className="px-3 py-2 mb-2">
-            <div className="glass rounded-xl px-3 py-2 flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'linear-gradient(135deg, #7c3aed, #ec4899)' }} />
-              <p className="text-muted-foreground text-xs">Демо-чаты · Напишите первому, чтобы чаты сохранились в БД</p>
-            </div>
-          </div>
-          {demoFiltered.map((chat, i) => (
-            <button
-              key={chat.id}
-              onClick={() => onOpenChat({
-                partnerId: "demo-" + chat.id,
-                partnerName: chat.name,
-                partnerAvatar: chat.avatar,
-                partnerOnline: chat.online,
-              })}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-2xl mb-1 hover:bg-white/5 transition-all duration-200 animate-fade-in text-left"
-              style={{ animationDelay: `${i * 0.05}s` }}>
-              <div className="relative flex-shrink-0">
-                <div className="avatar-ring">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center text-xl font-bold text-white">
-                    {chat.avatar}
-                  </div>
-                </div>
-                {chat.online && (
-                  <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-400 rounded-full border-2"
-                    style={{ borderColor: 'hsl(240, 15%, 6%)' }} />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="font-semibold text-white text-sm truncate">{chat.name}</span>
-                  <span className="text-muted-foreground text-xs flex-shrink-0 ml-2">{chat.time}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground text-xs truncate">{chat.lastMessage}</span>
-                  {chat.unread > 0 && (
-                    <span className="ml-2 flex-shrink-0 w-5 h-5 rounded-full text-white text-xs flex items-center justify-center font-bold"
-                      style={{ background: 'linear-gradient(135deg, #7c3aed, #ec4899)' }}>
-                      {chat.unread > 9 ? "9+" : chat.unread}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </button>
-          ))}
-        </>
-      )}
-
-      {hasRealChats && realFiltered.length === 0 && (
-        <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
-          <Icon name="MessageCircle" size={40} className="mb-2 opacity-30" />
-          <p className="text-sm">Чаты не найдены</p>
-        </div>
-      )}
     </div>
   );
 }
